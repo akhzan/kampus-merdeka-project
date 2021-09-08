@@ -1,6 +1,7 @@
 import './App.css'
 import PokemonList from './components/pokemon-list'
 import { PokemonContext, usePokemonContext } from './hooks/useAppWithContext'
+import 'antd/dist/antd.css'
 
 const App = () => {
   const pokemonContext = usePokemonContext()
