@@ -1,60 +1,170 @@
-import { useContext, useState } from 'react'
-import { PokemonContext } from '../../hooks/useAppWithContext'
-import { List, Modal, Skeleton } from 'antd'
+import { Button, Card, Modal, notification, Space, Form, Input, Upload } from 'antd'
+import { useEffect, useState } from 'react'
+import PokemonCard from '../card'
 import TypeLabel from '../label'
-// import PokemonCard from '../card'
 
 const PokemonList = () => {
-  const { pokemons } = useContext(PokemonContext)
-  const [modal, setModal] = useState(null)
   const [loading, setLoading] = useState(false)
-  const getDetail = async (item) => {
+  const [pokemons, setPokemons] = useState([])
+  const [pokemonSelected, setPokemonSelected] = useState(null)
+  const [modalCreate, setModalCreate] = useState(false)
+  const [isEdit, setIsEdit] = useState(false)
+  const fetchPokemons = async () => {
     setLoading(true)
-    setModal({})
-    const data = await fetch(item.url)
+    const pokemonsFromApi = await fetch('http://localhost:8080')
       .then((res) => res.json())
-      .then((res) => res)
-      .catch(() => {})
-    const newItem = { ...item, data }
-    setModal(newItem)
+      .then((res) => res.data)
+      .catch((err) => {
+        console.log(err)
+      })
+    setPokemons(pokemonsFromApi)
     setLoading(false)
   }
-  const { data, name } = modal || {}
-  const { id, sprites, types } = data || {}
+  const deletePokemon = async (id) => {
+    const isSuccess = await fetch(`http://localhost:8080/${id}`, { method: 'DELETE' })
+      .then(() => true)
+      .catch(() => false)
+    if (isSuccess) {
+      closeModal()
+      fetchPokemons()
+    } else {
+      notification.error({ message: 'Delete failed. Please try again' })
+    }
+  }
+  const createPokemon = async (values) => {
+    const isSuccess = await fetch('http://localhost:8080', {
+      method: 'POST',
+      body: JSON.stringify(values),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(() => true)
+      .catch(() => false)
+    if (isSuccess) {
+      setModalCreate(false)
+      fetchPokemons()
+    } else {
+      notification.error({ message: 'Create pokemon failed. Please try again' })
+    }
+  }
+  const editPokemon = async (values) => {
+    const newPokemon = {
+      ...pokemonSelected,
+      ...values,
+    }
+    const isSuccess = await fetch(`http://localhost:8080/${pokemonSelected.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(newPokemon),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(() => true)
+      .catch((e) => {
+        console.log(e)
+        return false
+      })
+    if (isSuccess) {
+      setPokemonSelected(null)
+      setIsEdit(false)
+      fetchPokemons()
+    } else {
+      notification.error({ message: 'Edit pokemon failed. Please try again' })
+    }
+  }
+  const openModal = (pokemon) => {
+    setPokemonSelected(pokemon)
+  }
+  const closeModal = () => {
+    setPokemonSelected(null)
+  }
+  useEffect(() => {
+    fetchPokemons()
+  }, [])
   return (
-    <div className='mt-4 grid grid-cols-4 gap-4'>
-      <List
-        bordered
-        dataSource={pokemons}
-        renderItem={(item) => (
-          <List.Item className='cursor-pointer' onClick={() => getDetail(item)}>
-            {item.name}
-          </List.Item>
-        )}
-      />
-      <Modal title={modal?.name} visible={!!modal} onCancel={() => setModal(null)} footer={null}>
-        {loading ? (
-          <Skeleton active />
-        ) : (
-          <div className='text-center'>
-            <div className='flex justify-center'>
-              <img className='h-28 w-auto' src={sprites?.front_default} alt='' />
-            </div>
-            <p className='text-gray-400 text-sm'>#00{id}</p>
-            <p className='my-3'>{name}</p>
-            <div className='flex justify-center items-center'>
-              {(types || []).map((type, i) => (
-                <TypeLabel key={i} name={type.type.name} />
-              ))}
-            </div>
+    <div>
+      <Button onClick={() => setModalCreate(true)}>Create Pokemon</Button>
+      <div className='grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6'>
+        {loading && [1, 2, 3, 4].map((key) => <Card key={key} loading={loading} />)}
+        {pokemons.map((pokemon) => (
+          <div key={pokemon.id} className='cursor-pointer' onClick={() => openModal(pokemon)}>
+            <PokemonCard
+              key={pokemon.id}
+              imgSrc={pokemon.ThumbnailImage}
+              name={pokemon.name}
+              types={pokemon.type}
+              id={pokemon.id}
+            />
           </div>
+        ))}
+      </div>
+      <Modal visible={pokemonSelected?.id} footer={null} onCancel={closeModal}>
+        <h4 className='font-bold text-lg'>{pokemonSelected?.name}</h4>
+        <img className='w-16 h-auto' src={pokemonSelected?.ThumbnailImage} alt='' />
+        <div className='flex mt-4'>
+          {pokemonSelected?.type?.map((type) => (
+            <TypeLabel key={type} name={type} />
+          ))}
+        </div>
+        {isEdit && (
+          <Form
+            initialValues={pokemonSelected}
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            name='pokemon-form-edit'
+            onFinish={(values) => editPokemon(values)}
+            onFinishFailed={() => {}}
+          >
+            <Form.Item label='ID' name='id' rules={[{ required: true, message: 'Please input your ID!' }]}>
+              <Input disabled />
+            </Form.Item>
+            <Form.Item label='Name' name='name' rules={[{ required: true, message: 'Please input your name!' }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label='Image'
+              name='ThumbnailImage'
+              rules={[{ required: true, message: 'Please input your image!' }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+              <Button type='primary' htmlType='submit'>
+                Submit
+              </Button>
+            </Form.Item>
+          </Form>
         )}
+        <Space>
+          <Button onClick={() => setIsEdit(!isEdit)}>Edit</Button>
+          <Button onClick={() => deletePokemon(pokemonSelected?.id)}>Delete</Button>
+        </Space>
       </Modal>
-      {/* {pokemons.map((pokemon) => {
-        const { data, name } = pokemon
-        const { id, sprites, types } = data
-        return <PokemonCard key={id} imgSrc={sprites.front_default} id={id} name={name} types={types} />
-      })} */}
+      <Modal title='Create Pokemon' visible={modalCreate} footer={null} onCancel={() => setModalCreate(false)}>
+        <Form
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          name='pokemon-form'
+          onFinish={(values) => createPokemon(values)}
+          onFinishFailed={() => {}}
+        >
+          <Form.Item label='ID' name='id' rules={[{ required: true, message: 'Please input your ID!' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label='Name' name='name' rules={[{ required: true, message: 'Please input your name!' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label='Image'
+            name='ThumbnailImage'
+            rules={[{ required: true, message: 'Please input your image!' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+            <Button type='primary' htmlType='submit'>
+              Submit
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

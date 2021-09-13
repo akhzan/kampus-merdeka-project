@@ -5,7 +5,7 @@ const TypeLabel = ({ name }) => {
     fire: 'bg-red-600',
     rock: 'bg-gray-800',
   }
-  const color = types['grass'] || 'bg-gray-800'
+  const color = types[name] || 'bg-gray-800'
   return <p className={`px-2 py-0.5 text-sm rounded text-white mx-1 ${color}`}>{name}</p>
 }
 
