@@ -1,7 +1,8 @@
-import { Button, Card, Modal, notification, Space, Form, Input, Upload } from 'antd'
+import { Button, Card, Modal, notification, Space, Form, Input } from 'antd'
 import { useEffect, useState } from 'react'
 import PokemonCard from '../card'
 import TypeLabel from '../label'
+import { axiosInstance } from '../../config/api'
 
 const PokemonList = () => {
   const [loading, setLoading] = useState(false)
@@ -11,39 +12,31 @@ const PokemonList = () => {
   const [isEdit, setIsEdit] = useState(false)
   const fetchPokemons = async () => {
     setLoading(true)
-    const pokemonsFromApi = await fetch('http://localhost:8080')
-      .then((res) => res.json())
-      .then((res) => res.data)
-      .catch((err) => {
-        console.log(err)
-      })
-    setPokemons(pokemonsFromApi)
+    const pokemonsFromApi = await axiosInstance
+      .get('/')
+      .then((res) => console.log('res: ', res))
+      .catch(() => [])
+    // setPokemons(pokemonsFromApi)
     setLoading(false)
   }
   const deletePokemon = async (id) => {
-    const isSuccess = await fetch(`http://localhost:8080/${id}`, { method: 'DELETE' })
+    const isSuccess = await axiosInstance
+      .delete(`/${id}`)
       .then(() => true)
       .catch(() => false)
     if (isSuccess) {
       closeModal()
       fetchPokemons()
-    } else {
-      notification.error({ message: 'Delete failed. Please try again' })
     }
   }
   const createPokemon = async (values) => {
-    const isSuccess = await fetch('http://localhost:8080', {
-      method: 'POST',
-      body: JSON.stringify(values),
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const isSuccess = await axiosInstance
+      .post('', values)
       .then(() => true)
       .catch(() => false)
     if (isSuccess) {
       setModalCreate(false)
       fetchPokemons()
-    } else {
-      notification.error({ message: 'Create pokemon failed. Please try again' })
     }
   }
   const editPokemon = async (values) => {
@@ -51,11 +44,8 @@ const PokemonList = () => {
       ...pokemonSelected,
       ...values,
     }
-    const isSuccess = await fetch(`http://localhost:8080/${pokemonSelected.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(newPokemon),
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const isSuccess = await axiosInstance
+      .put(`/${pokemonSelected.id}`, newPokemon)
       .then(() => true)
       .catch((e) => {
         console.log(e)
@@ -65,8 +55,6 @@ const PokemonList = () => {
       setPokemonSelected(null)
       setIsEdit(false)
       fetchPokemons()
-    } else {
-      notification.error({ message: 'Edit pokemon failed. Please try again' })
     }
   }
   const openModal = (pokemon) => {
