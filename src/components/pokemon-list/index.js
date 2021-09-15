@@ -1,4 +1,4 @@
-import { Button, Card, Modal, notification, Space, Form, Input } from 'antd'
+import { Button, Card, Modal, Space, Form, Input } from 'antd'
 import { useEffect, useState } from 'react'
 import PokemonCard from '../card'
 import TypeLabel from '../label'
