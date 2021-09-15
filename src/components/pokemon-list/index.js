@@ -14,9 +14,9 @@ const PokemonList = () => {
     setLoading(true)
     const pokemonsFromApi = await axiosInstance
       .get('/')
-      .then((res) => console.log('res: ', res))
+      .then((res) => res.data.data)
       .catch(() => [])
-    // setPokemons(pokemonsFromApi)
+    setPokemons(pokemonsFromApi)
     setLoading(false)
   }
   const deletePokemon = async (id) => {

@@ -12,7 +12,6 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => {
     const newResponse = { ...response, responseKu: response.data }
-    delete response.data
     return newResponse
   },
   (error) => {
